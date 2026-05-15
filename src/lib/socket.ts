@@ -8,29 +8,34 @@ export function getSocket(): Socket {
     return socketInstance
   }
 
-  // Production: Render.com এর URL ব্যবহার হবে
-  // Development: local XTransformPort ব্যবহার হবে
   const isProduction = process.env.NODE_ENV === 'production'
   const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL
 
   if (socketInstance) {
     socketInstance.disconnect()
     socketInstance = null
   }
 
-  if (isProduction && socketUrl) {
-    // Production: Direct connection to Render.com
-    socketInstance = io(socketUrl, {
+  if (isProduction && (socketUrl || apiUrl)) {
+    // Combined server: Socket + API ekta URL e (Koyeb)
+    // NEXT_PUBLIC_SOCKET_URL set thakle seta use hobe
+    // Na thakle NEXT_PUBLIC_API_URL use hobe (same server!)
+    const url = socketUrl || apiUrl || ''
+    socketInstance = io(url, {
+      path: '/socket.io',
       transports: ['websocket', 'polling'],
       forceNew: true,
       reconnection: true,
-      reconnectionAttempts: 10,
+      reconnectionAttempts: 15,
       reconnectionDelay: 1000,
-      timeout: 15000,
+      reconnectionDelayMax: 5000,
+      timeout: 20000,
     })
   } else {
-    // Development: Local via Caddy proxy
-    socketInstance = io('/?XTransformPort=3003', {
+    // Development: Local combined server (ekta port e)
+    socketInstance = io('http://localhost:10000', {
+      path: '/socket.io',
       transports: ['websocket', 'polling'],
       forceNew: true,
       reconnection: true,
