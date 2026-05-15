@@ -1,0 +1,49 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id          String   @id @default(cuid())
+  username    String   @unique
+  email       String   @unique
+  password    String   // bcrypt hashed
+  rating      Int      @default(1200)
+  gamesPlayed Int      @default(0)
+  wins        Int      @default(0)
+  losses      Int      @default(0)
+  draws       Int      @default(0)
+  isOnline    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  whiteGames Game[] @relation("WhitePlayer")
+  blackGames Game[] @relation("BlackPlayer")
+}
+
+model Game {
+  id            String     @id @default(cuid())
+  whitePlayerId String
+  blackPlayerId String
+  whitePlayer   User       @relation("WhitePlayer", fields: [whitePlayerId], references: [id])
+  blackPlayer   User       @relation("BlackPlayer", fields: [blackPlayerId], references: [id])
+
+  moves         String     @default("[]") // JSON array of SAN moves
+  pgn           String     @default("") // Full PGN for game record
+  result        String     @default("") // "white", "black", "draw", ""
+  resultReason  String     @default("") // "checkmate", "resign", "timeout", "stalemate", "draw"
+  status        String     @default("waiting") // "waiting", "playing", "finished"
+
+  roomId        String?    @unique // Room ID if room-based game
+  timeControl   String     @default("10+0") // "10+0", "5+3", etc.
+  initialTime   Int        @default(600) // in seconds
+  whiteTime     Int        @default(600) // remaining time for white
+  blackTime     Int        @default(600) // remaining time for black
+
+  createdAt     DateTime   @default(now())
+  endedAt       DateTime?
+}
